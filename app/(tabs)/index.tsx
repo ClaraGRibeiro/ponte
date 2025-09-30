@@ -1,7 +1,6 @@
 import estadosCidadesData from "@/assets/data/estados-cidades.json";
 import { ThemedText } from "@/components/themed-text";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from "@react-native-picker/picker";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -11,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Dropdown } from "react-native-element-dropdown";
+import Toast from "react-native-toast-message";
 
 const vehicleData = [
   {
@@ -86,6 +87,7 @@ type Registro = {
 };
 
 export default function HomeScreen() {
+  const [msg, setMsg] = useState<string>("");
   const [estados, setEstados] = useState<Estado[]>([]);
   const [ufOrigem, setUfOrigem] = useState("");
   const [ufDestino, setUfDestino] = useState("");
@@ -104,11 +106,7 @@ export default function HomeScreen() {
     const loadRegistros = async () => {
       try {
         const saved = await AsyncStorage.getItem("registros");
-        if (saved) {
-          setRegistros(JSON.parse(saved));
-        } else {
-          setRegistros([]);
-        }
+        setRegistros(saved ? JSON.parse(saved) : []);
       } catch (e) {
         Alert.alert("Erro ao carregar registros");
       }
@@ -139,6 +137,12 @@ export default function HomeScreen() {
       const novosRegistros = [...registros, novoRegistro];
       await AsyncStorage.setItem("registros", JSON.stringify(novosRegistros));
       setRegistros(novosRegistros);
+      Toast.show({
+        type: "success",
+        text1: "Registro salvo ✅",
+        position: "top",
+        visibilityTime: 2000,
+      });
       setUfOrigem("");
       setUfDestino("");
       setCidadesOrigem([]);
@@ -146,8 +150,13 @@ export default function HomeScreen() {
       setCidadesDestino([]);
       setCidadeDestino("");
       setVeiculo("");
-    } catch (e) {
-      Alert.alert("Erro ao salvar registro");
+    } catch (e) {      
+      Toast.show({
+        type: "error",
+        text1: "Erro ao salvar registro ❌",
+        position: "top",
+        visibilityTime: 2000,
+      });
     }
   };
 
@@ -156,60 +165,70 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         {/* Vindo de */}
         <ThemedText style={styles.sectionTitle}>Vindo de</ThemedText>
-        <Picker
-          selectedValue={ufOrigem}
-          onValueChange={setUfOrigem}
-          style={styles.picker}
-        >
-          <Picker.Item label="Selecione a UF" value="" />
-          {estados.map((estado) => (
-            <Picker.Item
-              key={estado.sigla}
-              label={`${estado.sigla} - ${estado.nome}`}
-              value={estado.sigla}
-            />
-          ))}
-        </Picker>
+        <Dropdown
+          style={styles.dropdown}
+          data={estados.map((estado) => ({
+            label: `${estado.sigla} - ${estado.nome}`,
+            value: estado.sigla,
+          }))}
+          search
+          labelField="label"
+          valueField="value"
+          placeholder="Selecione a UF"
+          searchPlaceholder="Buscar UF..."
+          value={ufOrigem}
+          onChange={(item) => setUfOrigem(item.value)}
+        />
+
         {cidadesOrigem.length > 0 && (
-          <Picker
-            selectedValue={cidadeOrigem}
-            onValueChange={setCidadeOrigem}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecione a cidade" value="" />
-            {cidadesOrigem.map((cidade) => (
-              <Picker.Item key={cidade} label={cidade} value={cidade} />
-            ))}
-          </Picker>
+          <Dropdown
+            style={styles.dropdown}
+            data={cidadesOrigem.map((cidade) => ({
+              label: cidade,
+              value: cidade,
+            }))}
+            search
+            labelField="label"
+            valueField="value"
+            placeholder="Selecione a cidade"
+            searchPlaceholder="Buscar cidade..."
+            value={cidadeOrigem}
+            onChange={(item) => setCidadeOrigem(item.value)}
+          />
         )}
 
         {/* Indo para */}
         <ThemedText style={styles.sectionTitle}>Indo para</ThemedText>
-        <Picker
-          selectedValue={ufDestino}
-          onValueChange={setUfDestino}
-          style={styles.picker}
-        >
-          <Picker.Item label="Selecione a UF" value="" />
-          {estados.map((estado) => (
-            <Picker.Item
-              key={estado.sigla}
-              label={`${estado.sigla} - ${estado.nome}`}
-              value={estado.sigla}
-            />
-          ))}
-        </Picker>
+        <Dropdown
+          style={styles.dropdown}
+          data={estados.map((estado) => ({
+            label: `${estado.sigla} - ${estado.nome}`,
+            value: estado.sigla,
+          }))}
+          search
+          labelField="label"
+          valueField="value"
+          placeholder="Selecione a UF"
+          searchPlaceholder="Buscar UF..."
+          value={ufDestino}
+          onChange={(item) => setUfDestino(item.value)}
+        />
+
         {cidadesDestino.length > 0 && (
-          <Picker
-            selectedValue={cidadeDestino}
-            onValueChange={setCidadeDestino}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecione a cidade" value="" />
-            {cidadesDestino.map((cidade) => (
-              <Picker.Item key={cidade} label={cidade} value={cidade} />
-            ))}
-          </Picker>
+          <Dropdown
+            style={styles.dropdown}
+            data={cidadesDestino.map((cidade) => ({
+              label: cidade,
+              value: cidade,
+            }))}
+            search
+            labelField="label"
+            valueField="value"
+            placeholder="Selecione a cidade"
+            searchPlaceholder="Buscar cidade..."
+            value={cidadeDestino}
+            onChange={(item) => setCidadeDestino(item.value)}
+          />
         )}
 
         {/* Tipo de veículo */}
@@ -251,9 +270,7 @@ export default function HomeScreen() {
               <ThemedText style={styles.buttonText}>Salvar</ThemedText>
             </TouchableOpacity>
           ) : (
-            <ThemedText style={styles.warningText}>
-              Preencha o formulário inteiro.
-            </ThemedText>
+            <ThemedText style={styles.warningText}>{msg}</ThemedText>
           )}
         </View>
       </ScrollView>
@@ -272,12 +289,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: "#333",
   },
-  picker: {
+  dropdown: {
     backgroundColor: "#f6f6f6",
     borderRadius: 12,
-    paddingVertical: 8,
     paddingHorizontal: 12,
     marginBottom: 12,
+    height: 50,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -332,7 +349,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   warningText: {
-    color: "#E53935",
+    color: "#4CAF50",
     textAlign: "center",
     marginTop: 16,
     fontWeight: "500",

@@ -4,13 +4,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import Toast from "react-native-toast-message";
 
 type Registro = {
   ufOrigem: string;
@@ -29,20 +24,34 @@ export default function TabTwoScreen() {
       const saved = await AsyncStorage.getItem("registros");
       if (saved) {
         setRegistros(JSON.parse(saved));
+        Toast.show({
+          type: "success",
+          text1: "Registros atualizados ✅",
+          position: "top",
+          visibilityTime: 2000,
+        });
       } else {
-        // Se realmente quiser usar o JSON inicial só na primeira execução,
-        // pode salvar ele no AsyncStorage aqui
         await AsyncStorage.setItem("registros", JSON.stringify(registrosJSON));
         setRegistros(registrosJSON);
       }
     } catch (e) {
-      Alert.alert("Erro ao carregar registros");
+      Toast.show({
+        type: "error",
+        text1: "Erro ao carregar registros ❌",
+        position: "top",
+        visibilityTime: 2000,
+      });
     }
   };
 
   const copyRegistros = async () => {
     if (registros.length === 0) {
-      Alert.alert("Nenhum registro disponível para copiar.");
+      Toast.show({
+        type: "error",
+        text1: "Nenhum registro disponível para copiar ❌",
+        position: "top",
+        visibilityTime: 2000,
+      });
       return;
     }
 
@@ -51,24 +60,33 @@ export default function TabTwoScreen() {
       registros
         .map(
           (r) =>
-            `${formatDate(r.data)},${r.ufOrigem},${r.cidadeOrigem},${r.ufDestino},${r.cidadeDestino},${r.veiculo}`
+            `${formatDate(r.data, "csv")},${r.ufOrigem},${r.cidadeOrigem},${r.ufDestino},${r.cidadeDestino},${r.veiculo}`
         )
         .join("\n");
 
     await Clipboard.setStringAsync(texto);
 
-    Alert.alert(
-      "Registros copiados!",
-      "Agora você pode colar em qualquer lugar."
-    );
+    Toast.show({
+      type: "success",
+      text1: "Registros copiados ✅",
+      position: "top",
+      visibilityTime: 2000,
+    });
   };
 
   useEffect(() => {
     loadRegistros();
   }, []);
 
-  const formatDate = (iso: string) => {
+  const formatDate = (iso: string, mode: string = "") => {
     const date = new Date(iso);
+    if (mode === "csv") {
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    }
     return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "short",
@@ -96,7 +114,7 @@ export default function TabTwoScreen() {
             <ThemedText style={styles.buttonText}>Copiar</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.button, { backgroundColor: "#4CAF50" }]}
             onPress={async () => await loadRegistros()}
           >
             <IconSymbol
@@ -141,11 +159,10 @@ export default function TabTwoScreen() {
         )}
         <TouchableOpacity
           style={styles.deleteButton}
-          onPress={ async () => {
-                    await AsyncStorage.removeItem("registros");
-                    setRegistros([]);
-                  }
-                }
+          onPress={async () => {
+            await AsyncStorage.removeItem("registros");
+            setRegistros([]);
+          }}
         >
           <ThemedText style={styles.deleteButtonText}>Apagar tudo</ThemedText>
         </TouchableOpacity>
